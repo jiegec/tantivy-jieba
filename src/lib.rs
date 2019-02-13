@@ -3,10 +3,18 @@
 //! It implements a [`JiebaTokenizer`](./struct.JiebaTokenizer.html) for the purpose.
 extern crate jieba_rs;
 extern crate tantivy;
+#[macro_use]
+extern crate lazy_static;
 
 use tantivy::tokenizer::{Token, TokenStream, Tokenizer};
 
+lazy_static! {
+    static ref JIEBA: jieba_rs::Jieba = jieba_rs::Jieba::new();
+}
+
 /// Tokenize the text using jieba_rs.
+///
+/// Need to load dict on first tokenization.
 ///
 /// # Example
 /// ```rust
@@ -63,10 +71,9 @@ impl<'a> Tokenizer<'a> for JiebaTokenizer {
     type TokenStreamImpl = JiebaTokenStream;
 
     fn token_stream(&self, text: &'a str) -> Self::TokenStreamImpl {
-        let jieba = jieba_rs::Jieba::new();
         let mut indices = text.char_indices().collect::<Vec<_>>();
         indices.push((text.len(), '\0'));
-        let orig_tokens = jieba.tokenize(text, jieba_rs::TokenizeMode::Search, true);
+        let orig_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
         let mut tokens = Vec::new();
         for i in 0..orig_tokens.len() {
             let token = &orig_tokens[i];
