@@ -1,0 +1,13 @@
+[package]
+name = "tantivy-jieba"
+version = "0.1.0"
+authors = ["Jiajie Chen <noc@jiegec.ac.cn>"]
+edition = "2018"
+description = "A library that bridges between tantivy and jieba-rs"
+repository = "https://github.com/jiegec/tantivy-jieba"
+readme = "README.md"
+keywords = ["tantivy", "jieba"]
+
+[dependencies]
+tantivy = "0.8"
+jieba-rs = "0.2"

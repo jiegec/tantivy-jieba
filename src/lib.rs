@@ -1,0 +1,134 @@
+//! A library that bridges between tantivy and jieba-rs.
+//!
+//! It implements a [`JiebaTokenizer`](./struct.JiebaTokenizer.html) for the purpose.
+extern crate jieba_rs;
+extern crate tantivy;
+
+use tantivy::tokenizer::{Token, TokenStream, Tokenizer};
+
+/// Tokenize the text using jieba_rs.
+///
+/// # Example
+/// ```rust
+/// use tantivy::tokenizer::*;
+/// let tokenizer = tantivy_jieba::JiebaTokenizer {};
+/// let mut token_stream = tokenizer.token_stream("测试");
+/// assert_eq!(token_stream.next().unwrap().text, "测试");
+/// assert!(token_stream.next().is_none());
+/// ```
+/// 
+/// # Register tantivy tokenizer
+/// ```rust
+/// use tantivy::schema::Schema;
+/// use tantivy::tokenizer::*;
+/// use tantivy::Index;
+/// # fn main() {
+/// # let schema = Schema::builder().build();
+/// let tokenizer = tantivy_jieba::JiebaTokenizer {};
+/// let index = Index::create_in_ram(schema);
+/// index.tokenizers()
+///      .register("jieba", tokenizer);
+/// # }
+#[derive(Clone)]
+pub struct JiebaTokenizer;
+
+/// Token stream instantiated by [`JiebaTokenizer`](./struct.JiebaTokenizer.html).
+/// 
+/// Use [`JiebaTokenizer::token_stream`](./struct.JiebaTokenizer.html#impl-Tokenizer<%27a>).
+pub struct JiebaTokenStream {
+    tokens: Vec<Token>,
+    index: usize,
+}
+
+impl TokenStream for JiebaTokenStream {
+    fn advance(&mut self) -> bool {
+        if self.index < self.tokens.len() {
+            self.index = self.index + 1;
+            true
+        } else {
+            false
+        }
+    }
+
+    fn token(&self) -> &Token {
+        &self.tokens[self.index - 1]
+    }
+
+    fn token_mut(&mut self) -> &mut Token {
+        &mut self.tokens[self.index - 1]
+    }
+}
+
+impl<'a> Tokenizer<'a> for JiebaTokenizer {
+    type TokenStreamImpl = JiebaTokenStream;
+
+    fn token_stream(&self, text: &'a str) -> Self::TokenStreamImpl {
+        let jieba = jieba_rs::Jieba::new();
+        let mut indices = text.char_indices().collect::<Vec<_>>();
+        indices.push((text.len(), '\0'));
+        let orig_tokens = jieba.tokenize(text, jieba_rs::TokenizeMode::Search, true);
+        let mut tokens = Vec::new();
+        for i in 0..orig_tokens.len() {
+            let token = &orig_tokens[i];
+            tokens.push(Token {
+                offset_from: token.start,
+                offset_to: token.end,
+                position: token.start,
+                text: String::from(&text[(indices[token.start].0)..(indices[token.end].0)]),
+                position_length: token.end - token.start,
+            });
+        }
+        JiebaTokenStream { tokens, index: 0 }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {
+        use tantivy::tokenizer::*;
+        let tokenizer = crate::JiebaTokenizer {};
+        let mut token_stream = tokenizer.token_stream("张华考上了北京大学；李萍进了中等技术学校；我在百货公司当售货员：我们都有光明的前途");
+        let mut tokens = Vec::new();
+        while let Some(token) = token_stream.next() {
+            tokens.push(token.text.clone());
+        }
+        assert_eq!(
+            tokens,
+            vec![
+                "张华",
+                "考上",
+                "了",
+                "北京",
+                "大学",
+                "北京大学",
+                "；",
+                "李萍",
+                "进",
+                "了",
+                "中等",
+                "技术",
+                "术学",
+                "学校",
+                "技术学校",
+                "；",
+                "我",
+                "在",
+                "百货",
+                "公司",
+                "百货公司",
+                "当",
+                "售货",
+                "货员",
+                "售货员",
+                "：",
+                "我们",
+                "都",
+                "有",
+                "光明",
+                "的",
+                "前途"
+            ]
+        );
+    }
+}
