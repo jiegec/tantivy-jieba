@@ -7,6 +7,7 @@ description = "A library that bridges between tantivy and jieba-rs"
 repository = "https://github.com/jiegec/tantivy-jieba"
 readme = "README.md"
 keywords = ["tantivy", "jieba"]
+license = "MIT"
 
 [dependencies]
 tantivy = "0.8"

@@ -1,12 +1,17 @@
 tantivy-jieba
 ============================
 
+[![Crates.io version][crate-img]][crate]
+[![docs.rs][docs-img]][docs]
+[![Changelog][changelog-img]][changelog]
+
+
 An adapter that bridges between tantivy and jieba-rs.
 
 Usage
 ===========================
 
-Add dependency `tanticy-jieba` to your `Cargo.toml`.
+Add dependency `tantivy-jieba` to your `Cargo.toml`.
 
 Example
 ---------------------------
@@ -31,3 +36,10 @@ let index = Index::create_in_ram(schema);
 index.tokenizers()
      .register("jieba", tokenizer);
 ```
+
+[crate-img]:     https://img.shields.io/crates/v/tantivy-jieba.svg
+[crate]:         https://crates.io/crates/tantivy-jieba
+[changelog-img]: https://img.shields.io/badge/changelog-online-blue.svg
+[changelog]:     https://github.com/jiegec/tantivy-jieba/blob/master/CHANGELOG.md
+[docs-img]:      https://docs.rs/tantivy-jieba/badge.svg
+[docs]:          https://docs.rs/tantivy-jieba
