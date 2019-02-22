@@ -1,6 +1,8 @@
 //! A library that bridges between tantivy and jieba-rs.
 //!
 //! It implements a [`JiebaTokenizer`](./struct.JiebaTokenizer.html) for the purpose.
+#![forbid(unsafe_code)]
+
 extern crate jieba_rs;
 extern crate tantivy;
 #[macro_use]
