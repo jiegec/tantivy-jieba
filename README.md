@@ -4,6 +4,7 @@ tantivy-jieba
 [![Crates.io version][crate-img]][crate]
 [![docs.rs][docs-img]][docs]
 [![Changelog][changelog-img]][changelog]
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fjiegec%2Ftantivy-jieba.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fjiegec%2Ftantivy-jieba?ref=badge_shield)
 
 
 An adapter that bridges between tantivy and jieba-rs.
@@ -43,3 +44,7 @@ index.tokenizers()
 [changelog]:     https://github.com/jiegec/tantivy-jieba/blob/master/CHANGELOG.md
 [docs-img]:      https://docs.rs/tantivy-jieba/badge.svg
 [docs]:          https://docs.rs/tantivy-jieba
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fjiegec%2Ftantivy-jieba.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fjiegec%2Ftantivy-jieba?ref=badge_large)
