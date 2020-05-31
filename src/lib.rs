@@ -8,7 +8,7 @@ extern crate tantivy;
 #[macro_use]
 extern crate lazy_static;
 
-use tantivy::tokenizer::{Token, TokenStream, Tokenizer};
+use tantivy::tokenizer::{BoxTokenStream, Token, TokenStream, Tokenizer};
 
 lazy_static! {
     static ref JIEBA: jieba_rs::Jieba = jieba_rs::Jieba::new();
@@ -69,10 +69,8 @@ impl TokenStream for JiebaTokenStream {
     }
 }
 
-impl<'a> Tokenizer<'a> for JiebaTokenizer {
-    type TokenStreamImpl = JiebaTokenStream;
-
-    fn token_stream(&self, text: &'a str) -> Self::TokenStreamImpl {
+impl Tokenizer for JiebaTokenizer {
+    fn token_stream<'a>(&self, text: &'a str) -> BoxTokenStream<'a> {
         let mut indices = text.char_indices().collect::<Vec<_>>();
         indices.push((text.len(), '\0'));
         let orig_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
@@ -87,7 +85,7 @@ impl<'a> Tokenizer<'a> for JiebaTokenizer {
                 position_length: token.end - token.start,
             });
         }
-        JiebaTokenStream { tokens, index: 0 }
+        BoxTokenStream::from(JiebaTokenStream { tokens, index: 0 })
     }
 }
 
