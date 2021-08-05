@@ -78,8 +78,8 @@ impl Tokenizer for JiebaTokenizer {
         for i in 0..orig_tokens.len() {
             let token = &orig_tokens[i];
             tokens.push(Token {
-                offset_from: token.start,
-                offset_to: token.end,
+                offset_from: indices[token.start].0,
+                offset_to: indices[token.end].0,
                 position: token.start,
                 text: String::from(&text[(indices[token.start].0)..(indices[token.end].0)]),
                 position_length: token.end - token.start,
