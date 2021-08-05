@@ -26,7 +26,7 @@ lazy_static! {
 /// assert_eq!(token_stream.next().unwrap().text, "测试");
 /// assert!(token_stream.next().is_none());
 /// ```
-/// 
+///
 /// # Register tantivy tokenizer
 /// ```rust
 /// use tantivy::schema::Schema;
@@ -43,7 +43,7 @@ lazy_static! {
 pub struct JiebaTokenizer;
 
 /// Token stream instantiated by [`JiebaTokenizer`](./struct.JiebaTokenizer.html).
-/// 
+///
 /// Use [`JiebaTokenizer::token_stream`](./struct.JiebaTokenizer.html#impl-Tokenizer<%27a>).
 pub struct JiebaTokenStream {
     tokens: Vec<Token>,
@@ -95,13 +95,22 @@ mod tests {
     fn it_works() {
         use tantivy::tokenizer::*;
         let tokenizer = crate::JiebaTokenizer {};
-        let mut token_stream = tokenizer.token_stream("张华考上了北京大学；李萍进了中等技术学校；我在百货公司当售货员：我们都有光明的前途");
+        let mut token_stream = tokenizer.token_stream(
+            "张华考上了北京大学；李萍进了中等技术学校；我在百货公司当售货员：我们都有光明的前途",
+        );
         let mut tokens = Vec::new();
+        let mut token_text = Vec::new();
         while let Some(token) = token_stream.next() {
-            tokens.push(token.text.clone());
+            tokens.push(token.clone());
+            token_text.push(token.text.clone());
         }
+        // offset should be byte-indexed
+        assert_eq!(tokens[0].offset_from, 0);
+        assert_eq!(tokens[0].offset_to, "张华".bytes().len());
+        assert_eq!(tokens[1].offset_from, "张华".bytes().len());
+        // check tokenized text
         assert_eq!(
-            tokens,
+            token_text,
             vec![
                 "张华",
                 "考上",
