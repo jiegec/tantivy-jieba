@@ -1,8 +1,8 @@
 [package]
 name = "tantivy-jieba"
-version = "0.5.1"
+version = "0.6.0"
 authors = ["Jiajie Chen <noc@jiegec.ac.cn>"]
-edition = "2018"
+edition = "2021"
 description = "A library that bridges between tantivy and jieba-rs"
 repository = "https://github.com/jiegec/tantivy-jieba"
 readme = "README.md"
