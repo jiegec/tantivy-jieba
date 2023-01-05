@@ -1,6 +1,6 @@
 [package]
 name = "tantivy-jieba"
-version = "0.6.0"
+version = "0.7.0"
 authors = ["Jiajie Chen <noc@jiegec.ac.cn>"]
 edition = "2021"
 description = "A library that bridges between tantivy and jieba-rs"
@@ -11,5 +11,5 @@ license = "MIT"
 
 [dependencies]
 tantivy = "0.19.0"
-jieba-rs = "0.6.6"
+jieba-rs = "0.6.7"
 lazy_static = "1.4.0"
