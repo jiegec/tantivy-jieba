@@ -8,7 +8,7 @@ extern crate tantivy;
 #[macro_use]
 extern crate lazy_static;
 
-use tantivy::tokenizer::{BoxTokenStream, Token, TokenStream, Tokenizer};
+use tantivy::tokenizer::{Token, TokenStream, Tokenizer};
 
 lazy_static! {
     static ref JIEBA: jieba_rs::Jieba = jieba_rs::Jieba::new();
@@ -21,7 +21,7 @@ lazy_static! {
 /// # Example
 /// ```rust
 /// use tantivy::tokenizer::*;
-/// let tokenizer = tantivy_jieba::JiebaTokenizer {};
+/// let mut tokenizer = tantivy_jieba::JiebaTokenizer {};
 /// let mut token_stream = tokenizer.token_stream("测试");
 /// assert_eq!(token_stream.next().unwrap().text, "测试");
 /// assert!(token_stream.next().is_none());
@@ -70,7 +70,9 @@ impl TokenStream for JiebaTokenStream {
 }
 
 impl Tokenizer for JiebaTokenizer {
-    fn token_stream<'a>(&self, text: &'a str) -> BoxTokenStream<'a> {
+    type TokenStream<'a> = JiebaTokenStream;
+
+    fn token_stream<'a>(&mut self, text: &'a str) -> JiebaTokenStream {
         let mut indices = text.char_indices().collect::<Vec<_>>();
         indices.push((text.len(), '\0'));
         let orig_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
@@ -85,7 +87,7 @@ impl Tokenizer for JiebaTokenizer {
                 position_length: token.end - token.start,
             });
         }
-        BoxTokenStream::from(JiebaTokenStream { tokens, index: 0 })
+        JiebaTokenStream { tokens, index: 0 }
     }
 }
 
@@ -94,7 +96,7 @@ mod tests {
     #[test]
     fn it_works() {
         use tantivy::tokenizer::*;
-        let tokenizer = crate::JiebaTokenizer {};
+        let mut tokenizer = crate::JiebaTokenizer {};
         let mut token_stream = tokenizer.token_stream(
             "张华考上了北京大学；李萍进了中等技术学校；我在百货公司当售货员：我们都有光明的前途",
         );
