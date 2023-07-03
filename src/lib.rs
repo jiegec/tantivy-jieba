@@ -3,12 +3,9 @@
 //! It implements a [`JiebaTokenizer`](./struct.JiebaTokenizer.html) for the purpose.
 #![forbid(unsafe_code)]
 
-extern crate jieba_rs;
-extern crate tantivy;
-#[macro_use]
-extern crate lazy_static;
-
-use tantivy::tokenizer::{Token, TokenStream, Tokenizer};
+use lazy_static::lazy_static;
+use tantivy_tokenizer_api::{Token, TokenStream, Tokenizer};
+use jieba_rs;
 
 lazy_static! {
     static ref JIEBA: jieba_rs::Jieba = jieba_rs::Jieba::new();
