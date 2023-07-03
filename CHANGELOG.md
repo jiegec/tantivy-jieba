@@ -1,3 +1,8 @@
+v0.9.0 2023-07-03
+==========================
+
+1. Use tantivy-tokenizer-api instead of depending on tantivy directly
+
 v0.8.0 2023-07-03
 ==========================
 
