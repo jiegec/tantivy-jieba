@@ -5,7 +5,6 @@
 
 use lazy_static::lazy_static;
 use tantivy_tokenizer_api::{Token, TokenStream, Tokenizer};
-use jieba_rs;
 
 lazy_static! {
     static ref JIEBA: jieba_rs::Jieba = jieba_rs::Jieba::new();
@@ -50,7 +49,7 @@ pub struct JiebaTokenStream {
 impl TokenStream for JiebaTokenStream {
     fn advance(&mut self) -> bool {
         if self.index < self.tokens.len() {
-            self.index = self.index + 1;
+            self.index += 1;
             true
         } else {
             false
@@ -69,13 +68,12 @@ impl TokenStream for JiebaTokenStream {
 impl Tokenizer for JiebaTokenizer {
     type TokenStream<'a> = JiebaTokenStream;
 
-    fn token_stream<'a>(&mut self, text: &'a str) -> JiebaTokenStream {
+    fn token_stream(&mut self, text: &str) -> JiebaTokenStream {
         let mut indices = text.char_indices().collect::<Vec<_>>();
         indices.push((text.len(), '\0'));
         let orig_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
         let mut tokens = Vec::new();
-        for i in 0..orig_tokens.len() {
-            let token = &orig_tokens[i];
+        for token in orig_tokens {
             tokens.push(Token {
                 offset_from: indices[token.start].0,
                 offset_to: indices[token.end].0,
