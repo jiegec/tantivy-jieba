@@ -17,7 +17,7 @@ Add dependency `tantivy-jieba` to your `Cargo.toml`.
 Example
 ---------------------------
 
-```
+```rust
 use tantivy::tokenizer::*;
 let tokenizer = tantivy_jieba::JiebaTokenizer {};
 let mut token_stream = tokenizer.token_stream("测试");
@@ -28,7 +28,7 @@ assert!(token_stream.next().is_none());
 Register tantivy tokenizer
 ---------------------------
 
-```
+```rust
 use tantivy::schema::Schema;
 use tantivy::tokenizer::*;
 use tantivy::Index;
