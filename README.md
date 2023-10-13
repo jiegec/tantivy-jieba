@@ -19,7 +19,7 @@ Example
 
 ```rust
 use tantivy::tokenizer::*;
-let tokenizer = tantivy_jieba::JiebaTokenizer {};
+let mut tokenizer = tantivy_jieba::JiebaTokenizer {};
 let mut token_stream = tokenizer.token_stream("测试");
 assert_eq!(token_stream.next().unwrap().text, "测试");
 assert!(token_stream.next().is_none());
