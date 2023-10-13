@@ -10,7 +10,7 @@ keywords = ["tantivy", "jieba"]
 license = "MIT"
 
 [dependencies]
-jieba-rs = "0.6.7"
+jieba-rs = "0.6.8"
 lazy_static = "1.4.0"
 tantivy-tokenizer-api = "0.2.0"
 
