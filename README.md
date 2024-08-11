@@ -42,6 +42,6 @@ See [examples/mod.rs](examples/mod.rs) for detailed example.
 [docs-img]:      https://docs.rs/tantivy-jieba/badge.svg
 [docs]:          https://docs.rs/tantivy-jieba
 
-## License
+# License
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fjiegec%2Ftantivy-jieba.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fjiegec%2Ftantivy-jieba?ref=badge_large)
