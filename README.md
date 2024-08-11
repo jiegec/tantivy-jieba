@@ -35,12 +35,12 @@ index.tokenizers()
 
 See [examples/mod.rs](examples/mod.rs) for detailed example.
 
-[crate-img]: https://img.shields.io/crates/v/tantivy-jieba.svg
-[crate]: https://crates.io/crates/tantivy-jieba
+[crate-img]:     https://img.shields.io/crates/v/tantivy-jieba.svg
+[crate]:         https://crates.io/crates/tantivy-jieba
 [changelog-img]: https://img.shields.io/badge/changelog-online-blue.svg
-[changelog]: https://github.com/jiegec/tantivy-jieba/blob/master/CHANGELOG.md
-[docs-img]: https://docs.rs/tantivy-jieba/badge.svg
-[docs]: https://docs.rs/tantivy-jieba
+[changelog]:     https://github.com/jiegec/tantivy-jieba/blob/master/CHANGELOG.md
+[docs-img]:      https://docs.rs/tantivy-jieba/badge.svg
+[docs]:          https://docs.rs/tantivy-jieba
 
 ## License
 
