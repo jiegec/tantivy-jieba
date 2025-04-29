@@ -90,7 +90,8 @@ impl Tokenizer for JiebaTokenizer {
 mod tests {
     #[test]
     fn it_works() {
-        use tantivy::tokenizer::*;
+        use tantivy_tokenizer_api::{TokenStream, Tokenizer};
+
         let mut tokenizer = crate::JiebaTokenizer {};
         let mut token_stream = tokenizer.token_stream(
             "张华考上了北京大学；李萍进了中等技术学校；我在百货公司当售货员：我们都有光明的前途",
