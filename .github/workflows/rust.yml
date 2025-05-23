@@ -8,8 +8,6 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-  SCCACHE_GHA_ENABLED: "true"
-  RUSTC_WRAPPER: "sccache"
 
 jobs:
   build:
@@ -18,8 +16,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: Run sccache-cache
-      uses: mozilla-actions/sccache-action@v0.0.5
     - name: Build
       run: cargo build --verbose
     - name: Run tests
