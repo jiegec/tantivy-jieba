@@ -6,6 +6,5 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-tantivy = "0.22.0"
-tantivy-jieba = "0.11.0"
-
+tantivy = "0.24.1"
+tantivy-jieba = "0.12.0"
