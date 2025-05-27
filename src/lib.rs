@@ -72,14 +72,14 @@ impl Tokenizer for JiebaTokenizer {
         let mut indices = text.char_indices().collect::<Vec<_>>();
         indices.push((text.len(), '\0'));
         let orig_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
-        let mut tokens = Vec::new();
-        for token in orig_tokens {
+        let mut tokens = Vec::with_capacity(orig_tokens.len());
+        for (pos, token) in orig_tokens.iter().enumerate() {
             tokens.push(Token {
                 offset_from: indices[token.start].0,
                 offset_to: indices[token.end].0,
-                position: token.start,
-                text: String::from(&text[(indices[token.start].0)..(indices[token.end].0)]),
-                position_length: token.end - token.start,
+                position: pos,
+                text: token.word.to_string(),
+                position_length: 1,
             });
         }
         JiebaTokenStream { tokens, index: 0 }
@@ -106,6 +106,10 @@ mod tests {
         assert_eq!(tokens[0].offset_from, 0);
         assert_eq!(tokens[0].offset_to, "张华".bytes().len());
         assert_eq!(tokens[1].offset_from, "张华".bytes().len());
+        // check position
+        for (i, token) in tokens.iter().enumerate() {
+            assert_eq!(token.position, i);
+        }
         // check tokenized text
         assert_eq!(
             token_text,
