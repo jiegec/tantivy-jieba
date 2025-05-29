@@ -16,3 +16,8 @@ tantivy-tokenizer-api = "0.5.0"
 
 [dev-dependencies]
 tantivy = "0.24.1"
+criterion = "0.5"
+
+[[bench]]
+name = "bench"
+harness = false
