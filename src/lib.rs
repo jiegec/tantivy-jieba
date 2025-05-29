@@ -58,7 +58,7 @@ impl TokenStream for JiebaTokenStream<'_> {
         self.token.offset_to = self.token.offset_from + jieba_token.word.len();
         self.token.position = self.index;
         self.token.text.clear(); // avoid realloc
-        self.token.text.push_str(&jieba_token.word);
+        self.token.text.push_str(jieba_token.word);
         self.index += 1;
         true
     }
