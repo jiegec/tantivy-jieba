@@ -1,3 +1,8 @@
+v0.14.0 2025-05-29
+==========================
+
+1. Reduce memory allocations to improve performance, suggested by @wangrunji0408
+
 v0.13.0 2025-05-27
 ==========================
 
