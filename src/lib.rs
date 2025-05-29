@@ -56,7 +56,8 @@ impl TokenStream for JiebaTokenStream<'_> {
         let jieba_token = &self.jieba_tokens[self.index];
         self.token.offset_from = jieba_token.word.as_ptr() as usize - self.text.as_ptr() as usize;
         self.token.offset_to = self.token.offset_from + jieba_token.word.len();
-        self.token.position = self.index;
+        self.token.position = jieba_token.start;
+        self.token.position_length = jieba_token.end - jieba_token.start;
         self.token.text.clear(); // avoid realloc
         self.token.text.push_str(jieba_token.word);
         self.index += 1;
@@ -82,9 +83,9 @@ impl Tokenizer for JiebaTokenizer {
             .map(|token| Token {
                 offset_from: token.word.as_ptr() as usize - text.as_ptr() as usize,
                 offset_to: token.word.as_ptr() as usize - text.as_ptr() as usize + token.word.len(),
-                position: 0,
                 text: token.word.to_string(),
-                position_length: 1,
+                position: token.start,
+                position_length: token.end - token.start,
             })
             .unwrap_or_default();
         JiebaTokenStream {
