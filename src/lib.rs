@@ -41,48 +41,58 @@ pub struct JiebaTokenizer;
 /// Token stream instantiated by [`JiebaTokenizer`](./struct.JiebaTokenizer.html).
 ///
 /// Use [`JiebaTokenizer::token_stream`](./struct.JiebaTokenizer.html#impl-Tokenizer<%27a>).
-pub struct JiebaTokenStream {
-    tokens: Vec<Token>,
+pub struct JiebaTokenStream<'a> {
+    text: &'a str,
+    jieba_tokens: Vec<jieba_rs::Token<'a>>,
     index: usize,
+    token: Token,
 }
 
-impl TokenStream for JiebaTokenStream {
+impl TokenStream for JiebaTokenStream<'_> {
     fn advance(&mut self) -> bool {
-        if self.index < self.tokens.len() {
-            self.index += 1;
-            true
-        } else {
-            false
+        if self.index >= self.jieba_tokens.len() {
+            return false;
         }
+        let jieba_token = &self.jieba_tokens[self.index];
+        self.token.offset_from = jieba_token.word.as_ptr() as usize - self.text.as_ptr() as usize;
+        self.token.offset_to = self.token.offset_from + jieba_token.word.len();
+        self.token.position = self.index;
+        self.token.text.clear(); // avoid realloc
+        self.token.text.push_str(jieba_token.word);
+        self.index += 1;
+        true
     }
 
     fn token(&self) -> &Token {
-        &self.tokens[self.index - 1]
+        &self.token
     }
 
     fn token_mut(&mut self) -> &mut Token {
-        &mut self.tokens[self.index - 1]
+        &mut self.token
     }
 }
 
 impl Tokenizer for JiebaTokenizer {
-    type TokenStream<'a> = JiebaTokenStream;
+    type TokenStream<'a> = JiebaTokenStream<'a>;
 
-    fn token_stream(&mut self, text: &str) -> JiebaTokenStream {
-        let mut indices = text.char_indices().collect::<Vec<_>>();
-        indices.push((text.len(), '\0'));
-        let orig_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
-        let mut tokens = Vec::with_capacity(orig_tokens.len());
-        for (pos, token) in orig_tokens.iter().enumerate() {
-            tokens.push(Token {
-                offset_from: indices[token.start].0,
-                offset_to: indices[token.end].0,
-                position: pos,
+    fn token_stream<'a>(&mut self, text: &'a str) -> JiebaTokenStream<'a> {
+        let jieba_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
+        let token = jieba_tokens
+            .first()
+            .map(|token| Token {
+                offset_from: token.word.as_ptr() as usize - text.as_ptr() as usize,
+                offset_to: token.word.as_ptr() as usize - text.as_ptr() as usize + token.word.len(),
+                position: 0,
                 text: token.word.to_string(),
                 position_length: 1,
-            });
+            })
+            .unwrap_or_default();
+        JiebaTokenStream {
+            text,
+            jieba_tokens,
+            index: 0,
+            token,
         }
-        JiebaTokenStream { tokens, index: 0 }
     }
 }
 
@@ -104,8 +114,8 @@ mod tests {
         }
         // offset should be byte-indexed
         assert_eq!(tokens[0].offset_from, 0);
-        assert_eq!(tokens[0].offset_to, "张华".bytes().len());
-        assert_eq!(tokens[1].offset_from, "张华".bytes().len());
+        assert_eq!(tokens[0].offset_to, "张华".len());
+        assert_eq!(tokens[1].offset_from, "张华".len());
         // check position
         for (i, token) in tokens.iter().enumerate() {
             assert_eq!(token.position, i);
