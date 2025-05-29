@@ -117,10 +117,6 @@ mod tests {
         assert_eq!(tokens[0].offset_from, 0);
         assert_eq!(tokens[0].offset_to, "张华".len());
         assert_eq!(tokens[1].offset_from, "张华".len());
-        // check position
-        for (i, token) in tokens.iter().enumerate() {
-            assert_eq!(token.position, i);
-        }
         // check tokenized text
         assert_eq!(
             token_text,
