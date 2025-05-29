@@ -54,14 +54,11 @@ impl TokenStream for JiebaTokenStream<'_> {
             return false;
         }
         let jieba_token = &self.jieba_tokens[self.index];
-        let offset_from = jieba_token.word.as_ptr() as usize - self.text.as_ptr() as usize;
-        self.token = Token {
-            offset_from,
-            offset_to: offset_from + jieba_token.word.len(),
-            position: self.index,
-            text: jieba_token.word.to_string(),
-            position_length: 1,
-        };
+        self.token.offset_from = jieba_token.word.as_ptr() as usize - self.text.as_ptr() as usize;
+        self.token.offset_to = self.token.offset_from + jieba_token.word.len();
+        self.token.position = self.index;
+        self.token.text.clear(); // avoid realloc
+        self.token.text.push_str(&jieba_token.word);
         self.index += 1;
         true
     }
