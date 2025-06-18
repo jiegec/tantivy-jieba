@@ -1,3 +1,8 @@
+v0.15.0 2025-06-18
+==========================
+
+1. Fix token position definition again, suggested by @wangrunji0408
+
 v0.14.0 2025-05-29
 ==========================
 
