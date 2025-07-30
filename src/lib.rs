@@ -1,12 +1,13 @@
 //! A library that bridges between tantivy and jieba-rs.
 //!
-//! It implements a [`JiebaTokenizer`](./struct.JiebaTokenizer.html) for the purpose.
+//! It implements a [`JiebaTokenizer`](JiebaTokenizer) for the purpose.
 #![forbid(unsafe_code)]
 
 use lazy_static::lazy_static;
 use tantivy_tokenizer_api::{Token, TokenStream, Tokenizer};
 
 lazy_static! {
+    /// Global [`Jieba`](jieba_rs::Jieba) instance
     static ref JIEBA: jieba_rs::Jieba = jieba_rs::Jieba::new();
 }
 
@@ -14,7 +15,10 @@ lazy_static! {
 ///
 /// Need to load dict on first tokenization.
 ///
-/// # Example
+/// # Examples
+///
+/// ## Independent usage
+///
 /// ```rust
 /// use tantivy::tokenizer::*;
 /// let mut tokenizer = tantivy_jieba::JiebaTokenizer {};
@@ -23,27 +27,84 @@ lazy_static! {
 /// assert!(token_stream.next().is_none());
 /// ```
 ///
-/// # Register tantivy tokenizer
+/// ## Register as tantivy tokenizer
+///
 /// ```rust
 /// use tantivy::schema::Schema;
 /// use tantivy::tokenizer::*;
 /// use tantivy::Index;
-/// # fn main() {
 /// # let schema = Schema::builder().build();
 /// let tokenizer = tantivy_jieba::JiebaTokenizer {};
 /// let index = Index::create_in_ram(schema);
 /// index.tokenizers()
 ///      .register("jieba", tokenizer);
-/// # }
 #[derive(Clone)]
 pub struct JiebaTokenizer;
 
-/// Token stream instantiated by [`JiebaTokenizer`](./struct.JiebaTokenizer.html).
+impl Tokenizer for JiebaTokenizer {
+    type TokenStream<'str> = JiebaTokenStream<'str>;
+
+    fn token_stream<'str>(&mut self, text: &'str str) -> JiebaTokenStream<'str> {
+        token_stream_common(&JIEBA, text)
+    }
+}
+
+/// Tokenize the text using jieba_rs with custom [`Jieba`](jieba_rs::Jieba) instance.
 ///
-/// Use [`JiebaTokenizer::token_stream`](./struct.JiebaTokenizer.html#impl-Tokenizer<%27a>).
-pub struct JiebaTokenStream<'a> {
-    text: &'a str,
-    jieba_tokens: Vec<jieba_rs::Token<'a>>,
+/// Need to load dict on first tokenization.
+///
+/// # Examples
+///
+/// ```rust
+/// use tantivy::tokenizer::*;
+/// let mut jieba = jieba_rs::Jieba::new();
+/// let mut tokenizer = tantivy_jieba::CustomJiebaTokenizer::new(jieba);
+/// let mut token_stream = tokenizer.token_stream("测试");
+/// assert_eq!(token_stream.next().unwrap().text, "测试");
+/// assert!(token_stream.next().is_none());
+/// ```
+#[derive(Clone)]
+pub struct CustomJiebaTokenizer {
+    jieba: jieba_rs::Jieba,
+}
+
+impl CustomJiebaTokenizer {
+    /// Create a new [`CustomJiebaTokenizer`](CustomJiebaTokenizer) instance using the given [`Jieba`](jieba_rs::Jieba) instance.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// use tantivy::tokenizer::*;
+    /// let mut jieba = jieba_rs::Jieba::new();
+    /// let mut tokenizer = tantivy_jieba::CustomJiebaTokenizer::new(jieba);
+    /// let mut token_stream = tokenizer.token_stream("测试");
+    /// assert_eq!(token_stream.next().unwrap().text, "测试");
+    /// assert!(token_stream.next().is_none());
+    /// ```
+    pub fn new(jieba: jieba_rs::Jieba) -> Self {
+        Self { jieba }
+    }
+
+    /// Extract the [`Jieba`](jieba_rs::Jieba) instance and drop self.
+    pub fn into_jieba(self) -> jieba_rs::Jieba {
+        self.jieba
+    }
+}
+
+impl Tokenizer for CustomJiebaTokenizer {
+    type TokenStream<'str> = JiebaTokenStream<'str>;
+
+    fn token_stream<'str>(&mut self, text: &'str str) -> JiebaTokenStream<'str> {
+        token_stream_common(&self.jieba, text)
+    }
+}
+
+/// Token stream instantiated by [`JiebaTokenizer`](JiebaTokenizer) or [`CustomJiebaTokenizer`](CustomJiebaTokenizer).
+///
+/// Use [`JiebaTokenizer::token_stream`](JiebaTokenizer::token_stream) or [`CustomJiebaTokenizer::token_stream`](CustomJiebaTokenizer::token_stream).
+pub struct JiebaTokenStream<'str> {
+    text: &'str str,
+    jieba_tokens: Vec<jieba_rs::Token<'str>>,
     index: usize,
     token: Token,
 }
@@ -73,27 +134,24 @@ impl TokenStream for JiebaTokenStream<'_> {
     }
 }
 
-impl Tokenizer for JiebaTokenizer {
-    type TokenStream<'a> = JiebaTokenStream<'a>;
-
-    fn token_stream<'a>(&mut self, text: &'a str) -> JiebaTokenStream<'a> {
-        let jieba_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
-        let token = jieba_tokens
-            .first()
-            .map(|token| Token {
-                offset_from: token.word.as_ptr() as usize - text.as_ptr() as usize,
-                offset_to: token.word.as_ptr() as usize - text.as_ptr() as usize + token.word.len(),
-                text: token.word.to_string(),
-                position: token.start,
-                position_length: token.end - token.start,
-            })
-            .unwrap_or_default();
-        JiebaTokenStream {
-            text,
-            jieba_tokens,
-            index: 0,
-            token,
-        }
+/// Create token stream from text
+fn token_stream_common<'str>(jieba: &jieba_rs::Jieba, text: &'str str) -> JiebaTokenStream<'str> {
+    let jieba_tokens = jieba.tokenize(text, jieba_rs::TokenizeMode::Search, true);
+    let token = jieba_tokens
+        .first()
+        .map(|token| Token {
+            offset_from: token.word.as_ptr() as usize - text.as_ptr() as usize,
+            offset_to: token.word.as_ptr() as usize - text.as_ptr() as usize + token.word.len(),
+            text: token.word.to_string(),
+            position: token.start,
+            position_length: token.end - token.start,
+        })
+        .unwrap_or_default();
+    JiebaTokenStream {
+        text,
+        jieba_tokens,
+        index: 0,
+        token,
     }
 }
 
