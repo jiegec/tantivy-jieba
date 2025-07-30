@@ -6,8 +6,9 @@
 use lazy_static::lazy_static;
 use tantivy_tokenizer_api::{Token, TokenStream, Tokenizer};
 
+use std::sync::RwLock;
 lazy_static! {
-    static ref JIEBA: jieba_rs::Jieba = jieba_rs::Jieba::new();
+    static ref JIEBA: RwLock<jieba_rs::Jieba> = RwLock::new(jieba_rs::Jieba::new());
 }
 
 /// Tokenize the text using jieba_rs.
@@ -77,7 +78,7 @@ impl Tokenizer for JiebaTokenizer {
     type TokenStream<'a> = JiebaTokenStream<'a>;
 
     fn token_stream<'a>(&mut self, text: &'a str) -> JiebaTokenStream<'a> {
-        let jieba_tokens = JIEBA.tokenize(text, jieba_rs::TokenizeMode::Search, true);
+        let jieba_tokens = JIEBA.read().unwrap().tokenize(text, jieba_rs::TokenizeMode::Search, true);
         let token = jieba_tokens
             .first()
             .map(|token| Token {
@@ -95,6 +96,28 @@ impl Tokenizer for JiebaTokenizer {
             token,
         }
     }
+}
+
+pub fn add_custom_word(word: &str, freq: usize, tag: &str) -> Result<(), Box<dyn std::error::Error>> {
+    let mut jieba = JIEBA.write().unwrap();
+    jieba.add_word(word, Some(freq), Some(tag));
+    Ok(())
+}
+
+pub fn add_custom_words(words: &[(&str, usize, &str)]) -> Result<(), Box<dyn std::error::Error>> {
+    let mut jieba = JIEBA.write().unwrap();
+    for (word, freq, tag) in words {
+        jieba.add_word(word, Some(*freq), Some(tag));
+    }
+    Ok(())
+}
+
+pub fn load_custom_dict_from_string(dict_content: &str) -> Result<(), Box<dyn std::error::Error>> {
+    use std::io::Cursor;
+    let mut cursor = Cursor::new(dict_content.as_bytes());
+    let mut jieba = JIEBA.write().unwrap();
+    jieba.load_dict(&mut cursor)?;
+    Ok(())
 }
 
 #[cfg(test)]
