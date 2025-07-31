@@ -1,10 +1,13 @@
 //! A library that bridges between tantivy and jieba-rs.
 //!
-//! It implements a [`JiebaTokenizer`](JiebaTokenizer) for the purpose.
+//! It implements a [`JiebaTokenizer`](JiebaTokenizer) and [`CustomJiebaTokenizer`](CustomJiebaTokenizer) for the purpose.
 #![forbid(unsafe_code)]
 
 use lazy_static::lazy_static;
 use tantivy_tokenizer_api::{Token, TokenStream, Tokenizer};
+
+/// Re-export jieba_rs to handle potential jieba_rs crate version mismatch
+pub use jieba_rs;
 
 lazy_static! {
     /// Global [`Jieba`](jieba_rs::Jieba) instance
