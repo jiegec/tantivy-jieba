@@ -1,3 +1,10 @@
+v0.16.0 2025-08-01
+==========================
+
+1. Add CustomJiebaTokenizer to allow user to provide their Jieba instance
+2. Re-export jieba_rs as tantivy_jieba::jieba_rs
+3. Bump jieba_rs to 0.8.0
+
 v0.15.0 2025-06-18
 ==========================
 
