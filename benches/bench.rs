@@ -1,5 +1,6 @@
-use criterion::{black_box, criterion_group, criterion_main, Criterion, Throughput};
+use criterion::{criterion_group, criterion_main, Criterion, Throughput};
 use std::fs;
+use std::hint::black_box;
 use tantivy_jieba::JiebaTokenizer;
 use tantivy_tokenizer_api::{TokenStream, Tokenizer};
 
@@ -15,7 +16,7 @@ fn jieba_tokenizer_benchmark(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(text_bytes));
     group.bench_function("tokenize", |b| {
         b.iter(|| {
-            let mut tokenizer = JiebaTokenizer;
+            let mut tokenizer = JiebaTokenizer::new();
             let mut token_stream = tokenizer.token_stream(black_box(&text));
             while token_stream.advance() {
                 black_box(token_stream.token());
