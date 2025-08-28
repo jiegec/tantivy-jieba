@@ -24,7 +24,7 @@ lazy_static! {
 ///
 /// ```rust
 /// use tantivy::tokenizer::*;
-/// let mut tokenizer = tantivy_jieba::JiebaTokenizer {};
+/// let mut tokenizer = tantivy_jieba::JiebaTokenizer::new();
 /// let mut token_stream = tokenizer.token_stream("测试");
 /// assert_eq!(token_stream.next().unwrap().text, "测试");
 /// assert!(token_stream.next().is_none());
@@ -42,13 +42,44 @@ lazy_static! {
 /// index.tokenizers()
 ///      .register("jieba", tokenizer);
 #[derive(Clone)]
-pub struct JiebaTokenizer;
+pub struct JiebaTokenizer {
+    /// Whether to use search mode for tokenization
+    search_mode: bool,
+}
+
+impl JiebaTokenizer {
+    /// Create a new JiebaTokenizer with search mode enabled by default
+    pub fn new() -> Self {
+        Self { search_mode: true }
+    }
+
+    /// Create a new JiebaTokenizer with specified search mode
+    pub fn with_search_mode(search_mode: bool) -> Self {
+        Self { search_mode }
+    }
+
+    /// Get the current search mode setting
+    pub fn search_mode(&self) -> bool {
+        self.search_mode
+    }
+
+    /// Set the search mode
+    pub fn set_search_mode(&mut self, search_mode: bool) {
+        self.search_mode = search_mode;
+    }
+}
+
+impl Default for JiebaTokenizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Tokenizer for JiebaTokenizer {
     type TokenStream<'str> = JiebaTokenStream<'str>;
 
     fn token_stream<'str>(&mut self, text: &'str str) -> JiebaTokenStream<'str> {
-        token_stream_common(&JIEBA, text)
+        token_stream_common(&JIEBA, text, self.search_mode)
     }
 }
 
@@ -98,7 +129,7 @@ impl Tokenizer for CustomJiebaTokenizer {
     type TokenStream<'str> = JiebaTokenStream<'str>;
 
     fn token_stream<'str>(&mut self, text: &'str str) -> JiebaTokenStream<'str> {
-        token_stream_common(&self.jieba, text)
+        token_stream_common(&self.jieba, text, true)
     }
 }
 
@@ -138,8 +169,13 @@ impl TokenStream for JiebaTokenStream<'_> {
 }
 
 /// Create token stream from text
-fn token_stream_common<'str>(jieba: &jieba_rs::Jieba, text: &'str str) -> JiebaTokenStream<'str> {
-    let jieba_tokens = jieba.tokenize(text, jieba_rs::TokenizeMode::Search, true);
+fn token_stream_common<'str>(jieba: &jieba_rs::Jieba, text: &'str str, search_mode: bool) -> JiebaTokenStream<'str> {
+    let mode = if search_mode {
+        jieba_rs::TokenizeMode::Search
+    } else {
+        jieba_rs::TokenizeMode::Default
+    };
+    let jieba_tokens = jieba.tokenize(text, mode, true);
     let token = jieba_tokens
         .first()
         .map(|token| Token {
@@ -164,7 +200,7 @@ mod tests {
     fn it_works() {
         use tantivy_tokenizer_api::{TokenStream, Tokenizer};
 
-        let mut tokenizer = crate::JiebaTokenizer {};
+        let mut tokenizer = crate::JiebaTokenizer::new();
         let mut token_stream = tokenizer.token_stream(
             "张华考上了北京大学；李萍进了中等技术学校；我在百货公司当售货员：我们都有光明的前途",
         );
