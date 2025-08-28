@@ -24,7 +24,18 @@ lazy_static! {
 ///
 /// ```rust
 /// use tantivy::tokenizer::*;
-/// let mut tokenizer = tantivy_jieba::JiebaTokenizer {};
+/// let mut tokenizer = tantivy_jieba::JiebaTokenizer::new();
+/// let mut token_stream = tokenizer.token_stream("测试");
+/// assert_eq!(token_stream.next().unwrap().text, "测试");
+/// assert!(token_stream.next().is_none());
+/// ```
+///
+/// ## With custom jieba instance
+///
+/// ```rust
+/// use tantivy::tokenizer::*;
+/// let mut jieba = jieba_rs::Jieba::new();
+/// let mut tokenizer = tantivy_jieba::JiebaTokenizer::with_jieba(jieba);
 /// let mut token_stream = tokenizer.token_stream("测试");
 /// assert_eq!(token_stream.next().unwrap().text, "测试");
 /// assert!(token_stream.next().is_none());
@@ -37,74 +48,85 @@ lazy_static! {
 /// use tantivy::tokenizer::*;
 /// use tantivy::Index;
 /// # let schema = Schema::builder().build();
-/// let tokenizer = tantivy_jieba::JiebaTokenizer {};
+/// let tokenizer = tantivy_jieba::JiebaTokenizer::new();
 /// let index = Index::create_in_ram(schema);
 /// index.tokenizers()
 ///      .register("jieba", tokenizer);
 #[derive(Clone)]
-pub struct JiebaTokenizer;
+pub struct JiebaTokenizer {
+    /// Whether to use search mode for tokenization
+    search_mode: bool,
+    /// Optional custom jieba instance, uses global instance if None
+    jieba: Option<jieba_rs::Jieba>,
+}
+
+impl JiebaTokenizer {
+    /// Create a new JiebaTokenizer
+    pub fn new() -> Self {
+        Self {
+            search_mode: true,
+            jieba: None,
+        }
+    }
+
+    /// Create a new JiebaTokenizer with specified search mode
+    pub fn with_search_mode(search_mode: bool) -> Self {
+        Self {
+            search_mode,
+            jieba: None,
+        }
+    }
+
+    /// Create a new JiebaTokenizer with custom jieba instance
+    pub fn with_jieba(jieba: jieba_rs::Jieba) -> Self {
+        Self {
+            search_mode: true,
+            jieba: Some(jieba),
+        }
+    }
+
+    /// Get the current search mode setting
+    pub fn search_mode(&self) -> bool {
+        self.search_mode
+    }
+
+    /// Set the search mode
+    pub fn set_search_mode(&mut self, search_mode: bool) {
+        self.search_mode = search_mode;
+    }
+
+    /// Set a custom jieba instance
+    pub fn set_jieba(&mut self, jieba: jieba_rs::Jieba) {
+        self.jieba = Some(jieba);
+    }
+
+    /// Extract the [`Jieba`](jieba_rs::Jieba) instance and drop self.
+    /// Returns None if using global jieba instance.
+    pub fn into_jieba(self) -> Option<jieba_rs::Jieba> {
+        self.jieba
+    }
+}
+
+impl Default for JiebaTokenizer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 impl Tokenizer for JiebaTokenizer {
     type TokenStream<'str> = JiebaTokenStream<'str>;
 
     fn token_stream<'str>(&mut self, text: &'str str) -> JiebaTokenStream<'str> {
-        token_stream_common(&JIEBA, text)
+        match &self.jieba {
+            Some(custom_jieba) => token_stream_common(custom_jieba, text, self.search_mode),
+            None => token_stream_common(&JIEBA, text, self.search_mode),
+        }
     }
 }
 
-/// Tokenize the text using jieba_rs with custom [`Jieba`](jieba_rs::Jieba) instance.
+/// Token stream instantiated by [`JiebaTokenizer`](JiebaTokenizer).
 ///
-/// Need to load dict on first tokenization.
-///
-/// # Examples
-///
-/// ```rust
-/// use tantivy::tokenizer::*;
-/// let mut jieba = jieba_rs::Jieba::new();
-/// let mut tokenizer = tantivy_jieba::CustomJiebaTokenizer::new(jieba);
-/// let mut token_stream = tokenizer.token_stream("测试");
-/// assert_eq!(token_stream.next().unwrap().text, "测试");
-/// assert!(token_stream.next().is_none());
-/// ```
-#[derive(Clone)]
-pub struct CustomJiebaTokenizer {
-    jieba: jieba_rs::Jieba,
-}
-
-impl CustomJiebaTokenizer {
-    /// Create a new [`CustomJiebaTokenizer`](CustomJiebaTokenizer) instance using the given [`Jieba`](jieba_rs::Jieba) instance.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// use tantivy::tokenizer::*;
-    /// let mut jieba = jieba_rs::Jieba::new();
-    /// let mut tokenizer = tantivy_jieba::CustomJiebaTokenizer::new(jieba);
-    /// let mut token_stream = tokenizer.token_stream("测试");
-    /// assert_eq!(token_stream.next().unwrap().text, "测试");
-    /// assert!(token_stream.next().is_none());
-    /// ```
-    pub fn new(jieba: jieba_rs::Jieba) -> Self {
-        Self { jieba }
-    }
-
-    /// Extract the [`Jieba`](jieba_rs::Jieba) instance and drop self.
-    pub fn into_jieba(self) -> jieba_rs::Jieba {
-        self.jieba
-    }
-}
-
-impl Tokenizer for CustomJiebaTokenizer {
-    type TokenStream<'str> = JiebaTokenStream<'str>;
-
-    fn token_stream<'str>(&mut self, text: &'str str) -> JiebaTokenStream<'str> {
-        token_stream_common(&self.jieba, text)
-    }
-}
-
-/// Token stream instantiated by [`JiebaTokenizer`](JiebaTokenizer) or [`CustomJiebaTokenizer`](CustomJiebaTokenizer).
-///
-/// Use [`JiebaTokenizer::token_stream`](JiebaTokenizer::token_stream) or [`CustomJiebaTokenizer::token_stream`](CustomJiebaTokenizer::token_stream).
+/// Use [`JiebaTokenizer::token_stream`](JiebaTokenizer::token_stream).
 pub struct JiebaTokenStream<'str> {
     text: &'str str,
     jieba_tokens: Vec<jieba_rs::Token<'str>>,
@@ -138,8 +160,17 @@ impl TokenStream for JiebaTokenStream<'_> {
 }
 
 /// Create token stream from text
-fn token_stream_common<'str>(jieba: &jieba_rs::Jieba, text: &'str str) -> JiebaTokenStream<'str> {
-    let jieba_tokens = jieba.tokenize(text, jieba_rs::TokenizeMode::Search, true);
+fn token_stream_common<'str>(
+    jieba: &jieba_rs::Jieba,
+    text: &'str str,
+    search_mode: bool,
+) -> JiebaTokenStream<'str> {
+    let mode = if search_mode {
+        jieba_rs::TokenizeMode::Search
+    } else {
+        jieba_rs::TokenizeMode::Default
+    };
+    let jieba_tokens = jieba.tokenize(text, mode, true);
     let token = jieba_tokens
         .first()
         .map(|token| Token {
@@ -164,7 +195,7 @@ mod tests {
     fn it_works() {
         use tantivy_tokenizer_api::{TokenStream, Tokenizer};
 
-        let mut tokenizer = crate::JiebaTokenizer {};
+        let mut tokenizer = crate::JiebaTokenizer::new();
         let mut token_stream = tokenizer.token_stream(
             "张华考上了北京大学；李萍进了中等技术学校；我在百货公司当售货员：我们都有光明的前途",
         );

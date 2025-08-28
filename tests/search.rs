@@ -24,7 +24,7 @@ fn search() {
     let schema = schema_builder.build();
 
     // Register tantivy tokenizer
-    let tokenizer = tantivy_jieba::JiebaTokenizer {};
+    let tokenizer = tantivy_jieba::JiebaTokenizer::new();
     let index = Index::create_in_ram(schema);
     let analyzer = TextAnalyzer::builder(tokenizer)
         .filter(RemoveLongFilter::limit(40))
