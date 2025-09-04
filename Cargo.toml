@@ -12,7 +12,7 @@ license = "MIT"
 [dependencies]
 jieba-rs = "0.8.0"
 lazy_static = "1.4.0"
-tantivy-tokenizer-api = "0.6.0"
+tantivy-tokenizer-api = { version = "0.6.0", git = "https://github.com/ExitPupil/tantivy.git", branch = "main" }
 
 [dev-dependencies]
 tantivy = "0.25.0"
