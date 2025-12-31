@@ -56,6 +56,8 @@ lazy_static! {
 pub struct JiebaTokenizer {
     /// Whether to use search mode for tokenization
     search_mode: bool,
+    /// Whether to use sequential ordinals instead of token offsets for Token.position
+    ordinal_position_mode: bool,
     /// Optional custom jieba instance, uses global instance if None
     jieba: Option<jieba_rs::Jieba>,
 }
@@ -65,6 +67,7 @@ impl JiebaTokenizer {
     pub fn new() -> Self {
         Self {
             search_mode: true,
+            ordinal_position_mode: false,
             jieba: None,
         }
     }
@@ -73,6 +76,16 @@ impl JiebaTokenizer {
     pub fn with_search_mode(search_mode: bool) -> Self {
         Self {
             search_mode,
+            ordinal_position_mode: false,
+            jieba: None,
+        }
+    }
+
+    /// Create a new JiebaTokenizer with ordinal position
+    pub fn with_ordinal_position_mode(ordinal_position_mode: bool) -> Self {
+        Self {
+            search_mode: true,
+            ordinal_position_mode,
             jieba: None,
         }
     }
@@ -81,6 +94,7 @@ impl JiebaTokenizer {
     pub fn with_jieba(jieba: jieba_rs::Jieba) -> Self {
         Self {
             search_mode: true,
+            ordinal_position_mode: false,
             jieba: Some(jieba),
         }
     }
@@ -93,6 +107,16 @@ impl JiebaTokenizer {
     /// Set the search mode
     pub fn set_search_mode(&mut self, search_mode: bool) {
         self.search_mode = search_mode;
+    }
+
+    /// Get the current ordinal position mode
+    pub fn ordinal_position_mode(&self) -> bool {
+        self.ordinal_position_mode
+    }
+
+    /// Set the ordinal position mode
+    pub fn set_ordinal_position_mode(&mut self, ordinal_position_mode: bool) {
+        self.ordinal_position_mode = ordinal_position_mode;
     }
 
     /// Set a custom jieba instance
@@ -118,8 +142,13 @@ impl Tokenizer for JiebaTokenizer {
 
     fn token_stream<'str>(&mut self, text: &'str str) -> JiebaTokenStream<'str> {
         match &self.jieba {
-            Some(custom_jieba) => token_stream_common(custom_jieba, text, self.search_mode),
-            None => token_stream_common(&JIEBA, text, self.search_mode),
+            Some(custom_jieba) => token_stream_common(
+                custom_jieba,
+                text,
+                self.search_mode,
+                self.ordinal_position_mode,
+            ),
+            None => token_stream_common(&JIEBA, text, self.search_mode, self.ordinal_position_mode),
         }
     }
 }
@@ -132,6 +161,7 @@ pub struct JiebaTokenStream<'str> {
     jieba_tokens: Vec<jieba_rs::Token<'str>>,
     index: usize,
     token: Token,
+    ordinal_position_mode: bool,
 }
 
 impl TokenStream for JiebaTokenStream<'_> {
@@ -142,8 +172,12 @@ impl TokenStream for JiebaTokenStream<'_> {
         let jieba_token = &self.jieba_tokens[self.index];
         self.token.offset_from = jieba_token.word.as_ptr() as usize - self.text.as_ptr() as usize;
         self.token.offset_to = self.token.offset_from + jieba_token.word.len();
-        self.token.position = jieba_token.start;
-        self.token.position_length = jieba_token.end - jieba_token.start;
+        if self.ordinal_position_mode {
+            self.token.position = self.index;
+        } else {
+            self.token.position = jieba_token.start;
+            self.token.position_length = jieba_token.end - jieba_token.start;
+        }
         self.token.text.clear(); // avoid realloc
         self.token.text.push_str(jieba_token.word);
         self.index += 1;
@@ -164,6 +198,7 @@ fn token_stream_common<'str>(
     jieba: &jieba_rs::Jieba,
     text: &'str str,
     search_mode: bool,
+    ordinal_position_mode: bool,
 ) -> JiebaTokenStream<'str> {
     let mode = if search_mode {
         jieba_rs::TokenizeMode::Search
@@ -177,8 +212,16 @@ fn token_stream_common<'str>(
             offset_from: token.word.as_ptr() as usize - text.as_ptr() as usize,
             offset_to: token.word.as_ptr() as usize - text.as_ptr() as usize + token.word.len(),
             text: token.word.to_string(),
-            position: token.start,
-            position_length: token.end - token.start,
+            position: if ordinal_position_mode {
+                0
+            } else {
+                token.start
+            },
+            position_length: if ordinal_position_mode {
+                1
+            } else {
+                token.end - token.start
+            },
         })
         .unwrap_or_default();
     JiebaTokenStream {
@@ -186,6 +229,7 @@ fn token_stream_common<'str>(
         jieba_tokens,
         index: 0,
         token,
+        ordinal_position_mode,
     }
 }
 
@@ -209,6 +253,11 @@ mod tests {
         assert_eq!(tokens[0].offset_from, 0);
         assert_eq!(tokens[0].offset_to, "张华".len());
         assert_eq!(tokens[1].offset_from, "张华".len());
+        // position should be unicode offset
+        assert_eq!(tokens[0].position, 0);
+        assert_eq!(tokens[0].position_length, 2);
+        assert_eq!(tokens[1].position, 2);
+        assert_eq!(tokens[1].position_length, 2);
         // check tokenized text
         assert_eq!(
             token_text,
@@ -247,5 +296,31 @@ mod tests {
                 "前途"
             ]
         );
+    }
+
+    #[test]
+    fn test_ordinal_position_mode() {
+        use tantivy_tokenizer_api::{TokenStream, Tokenizer};
+
+        let mut tokenizer = crate::JiebaTokenizer::with_ordinal_position_mode(true);
+        let mut token_stream = tokenizer.token_stream(
+            "张华考上了北京大学；李萍进了中等技术学校；我在百货公司当售货员：我们都有光明的前途",
+        );
+        let mut tokens = Vec::new();
+        let mut token_text = Vec::new();
+        while let Some(token) = token_stream.next() {
+            tokens.push(token.clone());
+            token_text.push(token.text.clone());
+        }
+        println!("{:?}", tokens);
+        // offset should be byte-indexed
+        assert_eq!(tokens[0].offset_from, 0);
+        assert_eq!(tokens[0].offset_to, "张华".len());
+        assert_eq!(tokens[1].offset_from, "张华".len());
+        // position should be ordinal
+        assert_eq!(tokens[0].position, 0);
+        assert_eq!(tokens[0].position_length, 1);
+        assert_eq!(tokens[1].position, 1);
+        assert_eq!(tokens[1].position_length, 1);
     }
 }
