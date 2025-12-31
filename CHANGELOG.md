@@ -1,3 +1,10 @@
+v0.18.0 2025-12-31
+==========================
+
+1. Merge CustomJiebaTokenizer into JiebaTokenizer to simplify API (thanks @wangrunji0408)
+2. Add search mode option to JiebaTokenizer (thanks @wangrunji0408)
+3. Add ordinal position mode for Token.position (fixes #24)
+
 v0.17.0 2025-08-26
 ==========================
 
