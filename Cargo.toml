@@ -15,7 +15,7 @@ lazy_static = "1.4.0"
 tantivy-tokenizer-api = "0.7.0"
 
 [dev-dependencies]
-tantivy = "0.26.0"
+tantivy = "0.27.0"
 criterion = "0.8.0"
 
 [[bench]]
